@@ -1,8 +1,14 @@
 project:
   type: website
+  output-dir: docs
+  preview:
+    port: 4202
+  render:
+    - "*.qmd"
+    - "!*.Rmd"
 
 website:
-  title: "postprocessing-data"
+  title: "Data Usage with Postprocessing"
   navbar:
     left:
       - href: index.qmd
