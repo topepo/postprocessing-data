@@ -269,7 +269,7 @@ The difference here is the existence of a postprocessor that needs estimation.
 
 Once we arrive at our final tuning parameter value(s), we still need to perform the "last fit" where we estimate all of the parameters for the entire model pipeline. 
 
-Let's say we use the three-way data splitting scheme shown above in Case 3. How do we resample the model? We suggest taking _all_ data that are not used for the training set as the substrate for resampling. Let's again use 5-fold cross-validation to demonstrate. The 80 samples are allocated to one of five folds. 
+Let's say we use the three-way data splitting scheme shown above in Case 3. How do we resample the model? We suggest taking _all_ data that are not used for the testing set as the substrate for resampling. Let's again use 5-fold cross-validation to demonstrate. The 80 samples are allocated to one of five folds. 
 
 ```{r}
 #| label: initial-reserve-again
