@@ -225,7 +225,11 @@ As usual, we fit five model pipelines with different tuning parameter candidates
 
 Once the optimization phase is finished, the final model uses the optimized tuning parameter values and is fit to the 80 data points of the training set. The other 20 samples in the test set are used to verify performance. 
 
+::: {.callout-note}
+
 Note that tidymodels uses specific terminology to distinguish between the data used for modeling and evaluation at the two different levels of data partitioning. The initial split creates training and test sets. During resampling, the analogs to these data sets are called the _analysis_ and _assessment_ sets. 
+
+:::
 
 #### Case 3: No Tuning, Postprocessing Estimation
 
@@ -255,7 +259,7 @@ We can allocate a small fraction of data for postprocessing estimation. A diagra
 knitr::include_graphics("premade/with-estimation-split.svg")
 ```
 
-The nomenclature is a little bit fuzzy here. For now, we'll call the darker brown data the training set (no different than before), the purple data the test set, and the light brown data the "potato set"^[Obviously, this is not going to be the real name. We need a placeholder until we come up with something that we all like. Potential candidate names are the "reserved data," auxiliary data," and "supplemental data."]
+The nomenclature is a little bit fuzzy here. For now, we'll call the darker brown data the training set (no different than before), the purple data the test set, and the light brown data the "potato set"^[Obviously, this is not going to be the real name. We need a placeholder until we come up with something that we all like. Potential candidate names are the "reserved data," auxiliary data," and "supplemental data. Why _potato_? Because it is easy to find/replace and you will probably remember it."]
 
 This extra set is a simple solution that avoids potential data leakage but is reducing the amount of data used to train the preprocessors and the supervised model. 
 
