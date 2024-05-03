@@ -2,13 +2,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.22">
+<meta name="generator" content="quarto-1.4.521">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Max Kuhn">
 
-<title>Data Usage with Postprocessing</title>
+<title>- Data Usage with Postprocessing</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -80,7 +80,7 @@ ul.task-list li input[type="checkbox"] {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">Data Usage with Postprocessing</span>
+    <span class="navbar-title"></span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -95,7 +95,7 @@ ul.task-list li input[type="checkbox"] {
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
-            <div class="quarto-navbar-tools">
+          <div class="quarto-navbar-tools">
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -111,13 +111,8 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   <li><a href="#more-about-postprocessors" id="toc-more-about-postprocessors" class="nav-link" data-scroll-target="#more-about-postprocessors">More About Postprocessors</a></li>
-  <li><a href="#initial-two-way-split" id="toc-initial-two-way-split" class="nav-link" data-scroll-target="#initial-two-way-split">Initial Two-Way Split</a>
-  <ul class="collapse">
-  <li><a href="#case-1-no-tuning-no-postprocessing-estimation" id="toc-case-1-no-tuning-no-postprocessing-estimation" class="nav-link" data-scroll-target="#case-1-no-tuning-no-postprocessing-estimation">Case 1: No Tuning, No Postprocessing Estimation</a></li>
-  <li><a href="#case-2-tuning-no-postprocessing-estimation" id="toc-case-2-tuning-no-postprocessing-estimation" class="nav-link" data-scroll-target="#case-2-tuning-no-postprocessing-estimation">Case 2: Tuning, No Postprocessing Estimation</a></li>
-  <li><a href="#case-3-no-tuning-postprocessing-estimation" id="toc-case-3-no-tuning-postprocessing-estimation" class="nav-link" data-scroll-target="#case-3-no-tuning-postprocessing-estimation">Case 3: No Tuning, Postprocessing Estimation</a></li>
-  <li><a href="#case-4-tuning-postprocessing-estimation" id="toc-case-4-tuning-postprocessing-estimation" class="nav-link" data-scroll-target="#case-4-tuning-postprocessing-estimation">Case 4: Tuning, Postprocessing Estimation</a></li>
-  </ul></li>
+  <li><a href="#initial-two-way-split" id="toc-initial-two-way-split" class="nav-link" data-scroll-target="#initial-two-way-split">Initial Two-Way Split</a></li>
+  <li><a href="#initial-three-way-split" id="toc-initial-three-way-split" class="nav-link" data-scroll-target="#initial-three-way-split">Initial Three-Way Split</a></li>
   </ul>
 </nav>
     </div>
@@ -157,7 +152,9 @@ ul.task-list li input[type="checkbox"] {
 <li>A <em>supervised ML model</em> to translate the predictors to predictions of the outcome (e.g., logistic regression, random forest, etc.).</li>
 <li><em>Postprocessors</em> that take the model’s predictions and change them for the purpose of improving model performance. One example is choosing an alternate probability cutoff in binary classification to optimize for better true positive or true negative rates.</li>
 </ul>
-<p>We’ll call the combination of these three components the <em>model pipeline</em> (taking after python’s sci-kit learn object type). The pipeline includes the model in the least; the pre and post model operations are added as needed.</p>
+<p>We’ll call the combination of these three components the <em>model pipeline</em> (taking after python’s sci-kit learn object type):</p>
+<pre><code>   pipeline = preprocessor(s) + supervised model + postprocessor(s)</code></pre>
+<p>The pipeline includes the model in the least; the pre and post model operations are added as needed.</p>
 </section>
 <section id="more-about-postprocessors" class="level2">
 <h2 class="anchored" data-anchor-id="more-about-postprocessors">More About Postprocessors</h2>
@@ -165,15 +162,16 @@ ul.task-list li input[type="checkbox"] {
 <p>The number of potential postprocessors is probably in single digits. Some examples:</p>
 <ul>
 <li>Specifying an optimal probability cutoff (mentioned above).</li>
-<li>Restricting the range of possible predictions (e.g., geater than zero).</li>
-<li>Simple deterministic transformations (e.g., exponentiation).</li>
+<li>Restricting the range of possible predictions (e.g., greater than zero).</li>
+<li>Simple deterministic transformations (e.g., exponentiation of predicted values).</li>
 <li>Disqualifying predictions via an <a href="https://blog.aml4td.org/posts/equivocal-zones/index.html">equivocal zone</a>.</li>
 <li>Post-hoc nearest neighbor adjustments such as <a href="https://scholar.google.com/scholar?hl=en&amp;as_sdt=0%2C7&amp;q=Combining+instance-based+and+model-based+learning&amp;btnG=">Quinlan (1993)</a>.</li>
 <li>Calibration.</li>
 </ul>
 <p>Each of these steps can involve tuning parameters that require optimization. For example, we can vary the cutoff value over a range for alternate probability cutoffs and measure the performance change in some statistic that uses the hard class predictions (such as accuracy or Kappa). These types of parameters are estimated <em>indirectly</em> via gris search or some other tuning parameter optimization routine. There is no analytical formula where we plug in our predictor and outcome data to produce a point estimate to plug into the postprocessor.</p>
 <p>However, the last two in the list above might also have parameter values that require direct estimation (akin to slope parameters in a linear regression). Of these, let’s focus on <em>model calibration</em> for more discussion.</p>
-<p>MORE HERE</p>
+<section id="model-calibration" class="level4">
+<h4 class="anchored" data-anchor-id="model-calibration">Model Calibration</h4>
 <p>In the examples that follow, we’ll visualize the data spending schemes with an initial pool of 100 samples, assumed to be in a random order:</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
@@ -186,11 +184,12 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <p>Let’s start with the ordinary case where we use a simple two-way training/testing split of the data, then consider different analysis paths.</p>
 </section>
+</section>
 <section id="initial-two-way-split" class="level2">
 <h2 class="anchored" data-anchor-id="initial-two-way-split">Initial Two-Way Split</h2>
 <p>There are a few different scenarios to consider. The first two are very pedestrian and are only included to contrast with the more complex ones.</p>
-<section id="case-1-no-tuning-no-postprocessing-estimation" class="level3">
-<h3 class="anchored" data-anchor-id="case-1-no-tuning-no-postprocessing-estimation">Case 1: No Tuning, No Postprocessing Estimation</h3>
+<section id="case-1-no-tuning-no-postprocessing-estimation" class="level4">
+<h4 class="anchored" data-anchor-id="case-1-no-tuning-no-postprocessing-estimation">Case 1: No Tuning, No Postprocessing Estimation</h4>
 <p>This is a simple case where a basic model will suffice with tuning parameters and no uncertainty about what predictors should be in the model.</p>
 <p>“No Postprocessing Estimation” means that there might be a postprocessor but it does not require any parameter estimation. For example, it might just change the probability cutoff for a binary classification to be something other than 50%.</p>
 <p>We split the data into a larger set (training, in orange), and the remainder goes into testing (purple). Any 80/20 split is used to demonstrate:</p>
@@ -205,8 +204,8 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <p>All of our estimation tasks use the training set and the test set is evaluated only once to quantify the efficacy of the model.</p>
 </section>
-<section id="case-2-tuning-no-postprocessing-estimation" class="level3">
-<h3 class="anchored" data-anchor-id="case-2-tuning-no-postprocessing-estimation">Case 2: Tuning, No Postprocessing Estimation</h3>
+<section id="case-2-tuning-no-postprocessing-estimation" class="level4">
+<h4 class="anchored" data-anchor-id="case-2-tuning-no-postprocessing-estimation">Case 2: Tuning, No Postprocessing Estimation</h4>
 <p>Here, some aspects of the model, preprocessor, or postprocessor required optimization. Any postprocessor does not require estimation (but could require tuning).</p>
 <p>Using the same initial split from Case 1, we might use some resampling strategy like cross-validation, the bootstrap, or a time-series resampling scheme. Without loss of generalization, we’ll show a 5-fold cross-validation diagram:</p>
 <div class="cell" data-layout-align="center">
@@ -222,8 +221,8 @@ ul.task-list li input[type="checkbox"] {
 <p>Once the optimization phase is finished, the final model uses the optimized tuning parameter values and is fit to the 80 data points of the training set. The other 20 samples in the test set are used to verify performance.</p>
 <p>Note that tidymodels uses specific terminology to distinguish between the data used for modeling and evaluation at the two different levels of data partitioning. The initial split creates training and test sets. During resampling, the analogs to these data sets are called the <em>analysis</em> and <em>assessment</em> sets.</p>
 </section>
-<section id="case-3-no-tuning-postprocessing-estimation" class="level3">
-<h3 class="anchored" data-anchor-id="case-3-no-tuning-postprocessing-estimation">Case 3: No Tuning, Postprocessing Estimation</h3>
+<section id="case-3-no-tuning-postprocessing-estimation" class="level4">
+<h4 class="anchored" data-anchor-id="case-3-no-tuning-postprocessing-estimation">Case 3: No Tuning, Postprocessing Estimation</h4>
 <p>Here our model pipeline requires no tuning but we do need to estimate parameters for our postprocessor.</p>
 <p>For example, perhaps our ordinary least squares linear regression model has some systematic bias in the predictions (and we have to use this model). We could attach a linear calibrator to the model pipeline that estimates the slope and intercept of a line defined by the observed and predicted outcomes (as shown above).</p>
 <p>We need data to estimate the slope and intercept. We should not touch the test set. Naively re-predicting the training set is a poor choice; for many black-box models, the fitted values will be unreasonably close to the true values. This means that the systematic bias that we are trying to remove will be less pronounced and the calibration may not help. It also leaves us with no other data to judge how well the model (and calibration) works without using the test set.</p>
@@ -248,8 +247,8 @@ ul.task-list li input[type="checkbox"] {
 <p>This extra set is a simple solution that avoids potential data leakage but is reducing the amount of data used to train the preprocessors and the supervised model.</p>
 <p>The next use-case is for situations where the model needs to be resampled for tuning or just to get some estimate of model performance.</p>
 </section>
-<section id="case-4-tuning-postprocessing-estimation" class="level3">
-<h3 class="anchored" data-anchor-id="case-4-tuning-postprocessing-estimation">Case 4: Tuning, Postprocessing Estimation</h3>
+<section id="case-4-tuning-postprocessing-estimation" class="level4">
+<h4 class="anchored" data-anchor-id="case-4-tuning-postprocessing-estimation">Case 4: Tuning, Postprocessing Estimation</h4>
 <p>Now our model and/or preprocessor have unknown parameters that need to be indirectly optimized via grid search, Bayesian optimization, or by some other means. The compare and choose between models, we require an out-of-sample performance estimate, just as in Case 2.</p>
 <p>The difference here is the existence of a postprocessor that needs estimation.</p>
 <p>Once we arrive at our final tuning parameter value(s), we still need to perform the “last fit” where we estimate all of the parameters for the entire model pipeline.</p>
@@ -277,6 +276,46 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 <p>In this instance, five preprocessor/model fits are paired with five calibration models, and when combined in sequence, they produce five resampled performance statistics. This is a complete resampling of the process that avoids information leakage.</p>
+</section>
+</section>
+<section id="initial-three-way-split" class="level2">
+<h2 class="anchored" data-anchor-id="initial-three-way-split">Initial Three-Way Split</h2>
+<p>If we have a lot of data, we might choose to start with three partitions of our data pool. The standard training and test sets would be supplemented by a validation set. This serves as a separate group of points that are used to judge model effectiveness during model development. While we should only look at the test set once, the validation set is designed to be evaluated multiple times so that we can compare and/or optimize our pipeline. Here’s a view of a 65/15/20 split:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="premade/val-split.svg" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:50.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>During model development, we can view the validation set as if it were a single iteration of resampling. Let’s look at that first. We’ll simply the number of use-case here too.</p>
+<section id="case-5-no-postprocessing-estimation" class="level4">
+<h4 class="anchored" data-anchor-id="case-5-no-postprocessing-estimation">Case 5: No Postprocessing Estimation</h4>
+<p>During model development, we would train our pipeline on the 65% of the data reserved for that purpose. Assuming that we need to tune or compare models, we would predict the 15% validation set and compute performance statistics.</p>
+<p>Eventually, we determine the best model pipeline to finalize. At this point, we already have our model fit since we have been directly training our pipeline on the training set<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>. From here, we predict the test set and verify that our validation set statistics were accurate.</p>
+</section>
+<section id="case-6-postprocessing-estimation" class="level4">
+<h4 class="anchored" data-anchor-id="case-6-postprocessing-estimation">Case 6: Postprocessing Estimation</h4>
+<p>The situation here is basically the same as the Case 3; we don’t want to re-use our training set to fit the postprocessor. As with Case 3, we advocate for splitting off a fourth partition of data for that purpose. Here is an example of a 50/15/15/20 split:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="premade/four-way-split.svg" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:50.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>During model development,</p>
+<ol type="1">
+<li>The preprocessor and supervised model are training on the training set (50% here)</li>
+<li>The predictions on the potato set (15%) are used as inputs to estimate the postprocessing parameters.</li>
+<li>The completely fitted pipeline predicts the validation set (15%), and those performance statistics guide our decision to finalize the pipeline.</li>
+<li>The test set (20%) is evaluated once for verification of performance.</li>
+</ol>
+<p>That is a lot of splitting but our pipeline is pretty complex. One might think that we are significantly reducing the amount of data used to fit the supervised models. That’s correct, and hopefully, it emphasizes that as the complexity of our pipeline increases, our data usage strategy needs to be more extensive to avoid subtle overfitting errors.</p>
 
 
 </section>
@@ -289,6 +328,7 @@ ul.task-list li input[type="checkbox"] {
 <li id="fn1"><p>Again, we don’t have to do this for all postprocessors, just those that require parameters to be estimated<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn2"><p>Obviously, this is not going to be the real name. We need a placeholder until we come up with something that we all like. Potential candidate names are the “reserved data,” auxiliary data,” and “supplemental data.”<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn3"><p><em>Most of the time</em>, this will be done via random sampling. For time-series data, we would emulate the same non-random splitting strategy that does not break the correlation structure of the data. Also, if we are bootstrapping, the proportional splits are conducted on the distinct rows of the non-test data to avoid having some replicates of specific rows falling in both partitions of the data.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>Since the validation set is no longer required, some people might pool the training and validation set and fit the finalized pipeline on those data (80% in total in our example). I don’t think that it’s a good idea but it does happen.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -370,24 +410,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-    var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
-    var isInternal = (href) => {
-        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-    }
-    // Inspect non-navigation links and adorn them if external
- 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
-    for (var i=0; i<links.length; i++) {
-      const link = links[i];
-      if (!isInternal(link.href)) {
-        // undo the damage that might have been done by quarto-nav.js in the case of
-        // links that we want to consider external
-        if (link.dataset.originalHref !== undefined) {
-          link.href = link.dataset.originalHref;
-        }
-      }
-    }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
@@ -422,11 +444,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      if (note) {
-        return note.innerHTML;
-      } else {
-        return "";
-      }
+      return note.innerHTML;
     });
   }
   const xrefs = window.document.querySelectorAll('a.quarto-xref');
@@ -441,6 +459,27 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       }
     }
     stripColumnClz(note)
+    const typesetMath = (el) => {
+      if (window.MathJax) {
+        // MathJax Typeset
+        window.MathJax.typeset([el]);
+      } else if (window.katex) {
+        // KaTeX Render
+        var mathElements = el.getElementsByClassName("math");
+        var macros = [];
+        for (var i = 0; i < mathElements.length; i++) {
+          var texText = mathElements[i].firstChild;
+          if (mathElements[i].tagName == "SPAN") {
+            window.katex.render(texText.data, mathElements[i], {
+              displayMode: mathElements[i].classList.contains('display'),
+              throwOnError: false,
+              macros: macros,
+              fleqn: false
+            });
+          }
+        }
+      }
+    }
     if (id === null || id.startsWith('sec-')) {
       // Special case sections, only their first couple elements
       const container = document.createElement("div");
@@ -455,14 +494,10 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             break;
           }
         }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(container);
-        }
+        typesetMath(container);
         return container.innerHTML
       } else {
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
+        typesetMath(note);
         return note.innerHTML;
       }
     } else {
@@ -471,15 +506,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (anchorLink) {
         anchorLink.remove();
       }
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(note);
-      }
-      // TODO in 1.5, we should make sure this works without a callout special case
-      if (note.classList.contains("callout")) {
-        return note.outerHTML;
-      } else {
-        return note.innerHTML;
-      }
+      typesetMath(note);
+      return note.innerHTML;
     }
   }
   for (var i=0; i<xrefs.length; i++) {
