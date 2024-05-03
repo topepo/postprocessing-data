@@ -166,13 +166,44 @@ ul.task-list li input[type="checkbox"] {
 <li>Simple deterministic transformations (e.g., exponentiation of predicted values).</li>
 <li>Disqualifying predictions via an <a href="https://blog.aml4td.org/posts/equivocal-zones/index.html">equivocal zone</a>.</li>
 <li>Post-hoc nearest neighbor adjustments such as <a href="https://scholar.google.com/scholar?hl=en&amp;as_sdt=0%2C7&amp;q=Combining+instance-based+and+model-based+learning&amp;btnG=">Quinlan (1993)</a>.</li>
-<li>Calibration.</li>
+<li><a href="https://www.tidyverse.org/blog/2022/11/model-calibration/">Calibration</a>.</li>
 </ul>
 <p>Each of these steps can involve tuning parameters that require optimization. For example, we can vary the cutoff value over a range for alternate probability cutoffs and measure the performance change in some statistic that uses the hard class predictions (such as accuracy or Kappa). These types of parameters are estimated <em>indirectly</em> via gris search or some other tuning parameter optimization routine. There is no analytical formula where we plug in our predictor and outcome data to produce a point estimate to plug into the postprocessor.</p>
 <p>However, the last two in the list above might also have parameter values that require direct estimation (akin to slope parameters in a linear regression). Of these, let’s focus on <em>model calibration</em> for more discussion.</p>
 <section id="model-calibration" class="level4">
 <h4 class="anchored" data-anchor-id="model-calibration">Model Calibration</h4>
-<p>In the examples that follow, we’ll visualize the data spending schemes with an initial pool of 100 samples, assumed to be in a random order:</p>
+<p>This article focuses largely on model calibration. This technique is not particularly significant, but we use it because it is a well-known postprocessing technique that requires direct parameter estimation.</p>
+<p>Calibration is most often applied to classification models. To keep things relatively simple, we’ll demonstrate the problem with a regression model that predicts a numeric outcome.</p>
+<p>We’ll use a regression data set as a demonstration<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. The data were split into a training set (n = 6004), a validation set (n = 2004), and a test set (n = 2004). This data splitting scheme corresponds to Case 5 below. The outcome is numeric and there are 30 predictors.</p>
+<p>Let’s deliberately fit a regression model that has poor predicted values: a boosted tree with only five members. The validation set statistics show an RMSE of 4.71 (units are minutes) and a corresponding R<sup>2</sup> of 85.4%. It’s hard to know if the RMSE is acceptable without context but the latter statistic seems pretty good.</p>
+<p>However, when we look at the data, the observed and predicted values are well correlated but very poorly calibrated:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="index_files/figure-html/bad-pred-plot-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:50.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The predicted values are not realistic in the sense that they are not consistent with the original data. They should fall along the diagonal green line if the model is performing well.</p>
+<p>The solid blue curve above shows a linear regression line that is fit to these data. This measures the systematic miscalibration. If we were to use the validation set to quantify the pattern, the intercept was -39.2 minutes and the slope was 2.49 minutes. Now that we know this pattern, it might be possible to remove it from the predictions.</p>
+<p>The problem, more broadly described below in Case 3, is that we can’t use the validation set to measure this pattern and assess its effectiveness.</p>
+<p>As an alternative, we used a slightly risky approach described in Case 3 to estimate a slope of -38.7 minutes, and the slope was 2.48 minutes. When these values are used to correct the validation set predictions, RMSE decreases from 4.71 to 2.68 minutes. The R<sup>2</sup> stays the same.</p>
+<p>The plot of the calibrated predictions shows a moderately effective model that has much better calibration:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="index_files/figure-html/cal-pred-plot-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:50.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="our-goals-here" class="level4">
+<h4 class="anchored" data-anchor-id="our-goals-here">Our Goals Here</h4>
+<p>In this article, we want to examine the nuances of data usage in situations where our pipeline is trained in two stages. To do this, we’ll show some diagrams that illustrate some different strategies. The discussion of different data spending schemes with an initial pool of 100 samples, assumed to be in a random order, is visualized using:</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -231,9 +262,9 @@ ul.task-list li input[type="checkbox"] {
 <li>Estimate our model parameters, and</li>
 <li>Estimate the calibration parameters.</li>
 </ol>
-<p>This raises the risk of overfitting and we don’t have a data set to check how well this works until the test set (which should be used to verify performance).</p>
+<p>This raises the risk of overfitting and we don’t have a data set to check how well this works until the test set (which should be used to verify performance). This is the approach that was used in the regression calibration example above.</p>
 <p>One approach is to use a three-way split at the start instead of a basic training/test set. We could reserve some data strictly for calibration (assuming that we know that calibration is required).</p>
-<p>We can allocate a small fraction of data for postprocessing estimation. A diagram of this is before with 60% used for training the preprocessor and supervised model, 20% for estimating the postprocessor, and 20% for testing<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. In the diagram below, the two shades of brown are meant to reflect that these data are used for estimation and the purple data are used strictly for model evaluation.</p>
+<p>We can allocate a small fraction of data for postprocessing estimation. A diagram of this is before with 60% used for training the preprocessor and supervised model, 20% for estimating the postprocessor, and 20% for testing<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. In the diagram below, the two shades of brown are meant to reflect that these data are used for estimation and the purple data are used strictly for model evaluation.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -243,7 +274,7 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-<p>The nomenclature is a little bit fuzzy here. For now, we’ll call the darker brown data the training set (no different than before), the purple data the test set, and the light brown data the “potato set”<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p>The nomenclature is a little bit fuzzy here. For now, we’ll call the darker brown data the training set (no different than before), the purple data the test set, and the light brown data the “potato set”<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
 <p>This extra set is a simple solution that avoids potential data leakage but is reducing the amount of data used to train the preprocessors and the supervised model.</p>
 <p>The next use-case is for situations where the model needs to be resampled for tuning or just to get some estimate of model performance.</p>
 </section>
@@ -264,7 +295,7 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <p>For the first iteration of cross-validation, we take out the first fold earmarked for performance estimation as the assessment set.</p>
 <p>Ordinarily, the other 4/5 would be used to estimate the preprocessor(s) and the model. However, we definitely need to include the postprocessor’s effect within resampling; otherwise, our resampling performance statistics will have overly optimistic values.</p>
-<p>We can emulate the same procedure used in our initial three-way split by randomly<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> selecting the same proportion of data to estimate the two estimation stages.</p>
+<p>We can emulate the same procedure used in our initial three-way split by randomly<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> selecting the same proportion of data to estimate the two estimation stages.</p>
 <p>Visually, the scheme for the first iteration of cross-validation is:</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
@@ -294,7 +325,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="case-5-no-postprocessing-estimation" class="level4">
 <h4 class="anchored" data-anchor-id="case-5-no-postprocessing-estimation">Case 5: No Postprocessing Estimation</h4>
 <p>During model development, we would train our pipeline on the 65% of the data reserved for that purpose. Assuming that we need to tune or compare models, we would predict the 15% validation set and compute performance statistics.</p>
-<p>Eventually, we determine the best model pipeline to finalize. At this point, we already have our model fit since we have been directly training our pipeline on the training set<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>. From here, we predict the test set and verify that our validation set statistics were accurate.</p>
+<p>Eventually, we determine the best model pipeline to finalize. At this point, we already have our model fit since we have been directly training our pipeline on the training set<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>. From here, we predict the test set and verify that our validation set statistics were accurate.</p>
 </section>
 <section id="case-6-postprocessing-estimation" class="level4">
 <h4 class="anchored" data-anchor-id="case-6-postprocessing-estimation">Case 6: Postprocessing Estimation</h4>
@@ -325,10 +356,11 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
-<li id="fn1"><p>Again, we don’t have to do this for all postprocessors, just those that require parameters to be estimated<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>Obviously, this is not going to be the real name. We need a placeholder until we come up with something that we all like. Potential candidate names are the “reserved data,” auxiliary data,” and “supplemental data.”<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn3"><p><em>Most of the time</em>, this will be done via random sampling. For time-series data, we would emulate the same non-random splitting strategy that does not break the correlation structure of the data. Also, if we are bootstrapping, the proportional splits are conducted on the distinct rows of the non-test data to avoid having some replicates of specific rows falling in both partitions of the data.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn4"><p>Since the validation set is no longer required, some people might pool the training and validation set and fit the finalized pipeline on those data (80% in total in our example). I don’t think that it’s a good idea but it does happen.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1"><p>These data are originally from <a href="https://aml4td.org/chapters/whole-game.html"><code>aml4td.org</code></a>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Again, we don’t have to do this for all postprocessors, just those that require parameters to be estimated<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Obviously, this is not going to be the real name. We need a placeholder until we come up with something that we all like. Potential candidate names are the “reserved data,” auxiliary data,” and “supplemental data.”<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p><em>Most of the time</em>, this will be done via random sampling. For time-series data, we would emulate the same non-random splitting strategy that does not break the correlation structure of the data. Also, if we are bootstrapping, the proportional splits are conducted on the distinct rows of the non-test data to avoid having some replicates of specific rows falling in both partitions of the data.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>Since the validation set is no longer required, some people might pool the training and validation set and fit the finalized pipeline on those data (80% in total in our example). I don’t think that it’s a good idea but it does happen.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

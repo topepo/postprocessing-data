@@ -31,7 +31,7 @@ The number of potential postprocessors is probably in single digits. Some exampl
 * Simple deterministic transformations (e.g., exponentiation of predicted values). 
 * Disqualifying predictions via an [equivocal zone](https://blog.aml4td.org/posts/equivocal-zones/index.html).
 * Post-hoc nearest neighbor adjustments such as [Quinlan (1993)](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C7&q=Combining+instance-based+and+model-based+learning&btnG=).
-* Calibration. 
+* [Calibration](https://www.tidyverse.org/blog/2022/11/model-calibration/). 
 
 Each of these steps can involve tuning parameters that require optimization. For example, we can vary the cutoff value over a range for alternate probability cutoffs and measure the performance change in some statistic that uses the hard class predictions (such as accuracy or Kappa). These types of parameters are estimated _indirectly_ via gris search or some other tuning parameter optimization routine. There is no analytical formula where we plug in our predictor and outcome data to produce a point estimate to plug into the postprocessor.
 
@@ -39,9 +39,138 @@ However, the last two in the list above might also have parameter values that re
 
 #### Model Calibration
 
+This article focuses largely on model calibration. This technique is not particularly significant, but we use it because it is a well-known postprocessing technique that requires direct parameter estimation. 
+
+Calibration is most often applied to classification models. To keep things relatively simple, we’ll demonstrate the problem with a regression model that predicts a numeric outcome. 
+
+```{r}
+#| label: startup
+#| include: false
+library(tidymodels)
+library(bonsai) # also requires lightgbm package
+library(probably)
+library(patchwork)
+
+# ------------------------------------------------------------------------------
+
+tidymodels_prefer()
+theme_set(theme_bw())
+options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
+
+# ------------------------------------------------------------------------------
+
+data(deliveries, package = "modeldata")
+
+set.seed(991)
+delivery_split <- initial_validation_split(deliveries, prop = c(0.6, 0.2), 
+                                           strata = time_to_delivery)
+delivery_train <- training(delivery_split)
+delivery_test  <- testing(delivery_split)
+delivery_val   <- validation(delivery_split)
+```
+
+We’ll use a regression data set as a demonstration^[These data are originally from [`aml4td.org`](https://aml4td.org/chapters/whole-game.html).]. The data were split into a training set (n = `r nrow(delivery_train)`), a validation set (n = `r nrow(delivery_val)`), and a test set (n = `r nrow(delivery_test)`). This data splitting scheme corresponds to Case 5 below. The outcome is numeric and there are `r ncol(delivery_val) -1` predictors. 
+
+```{r}
+#| label: bad-boost
+#| echo: false
+
+bst_spec <-
+  boost_tree(trees = 5) %>%
+  set_engine("lightgbm") %>%
+  set_mode("regression")
+
+bst_fit <-
+  bst_spec %>%
+  fit(time_to_delivery ~ ., data = delivery_train)
+```
+
+```{r}
+#| label: bad-pred
+#| echo: false
+
+reg_metrics <- metric_set(rmse, rsq)
+
+bst_val_pred <- augment(bst_fit, delivery_val)
+raw_met <- reg_metrics(bst_val_pred, truth = time_to_delivery, estimate = .pred)
+ls_val_coefs <- lm(time_to_delivery ~ .pred, data = bst_val_pred)
+ls_val_coefs <- signif(coef(ls_val_coefs), 3)
+```
+
+Let's deliberately fit a regression model that has poor predicted values: a boosted tree with only five members. The validation set statistics show an RMSE of `r signif(raw_met$.estimate[raw_met$.metric == "rmse"], 3)` (units are minutes) and a corresponding R<sup>2</sup> of `r signif(raw_met$.estimate[raw_met$.metric == "rsq"] * 100, 3)`%. It's hard to know if the RMSE is acceptable without context but the latter statistic seems pretty good. 
+
+However, when we look at the data, the observed and predicted values are well correlated but very poorly calibrated: 
+
+```{r}
+#| echo: false
+#| label: bad-pred-plot
+#| warning: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 50%
+#| fig-align: "center"
+
+bst_val_pred %>% 
+  ggplot(aes(time_to_delivery, .pred)) +
+  geom_abline(lty = 3, col = "green") +
+  geom_point(alpha = 1 / 4) +
+  geom_smooth(method = lm, col = "blue") +
+  coord_obs_pred() +
+  labs(x = "Observed", y = "Predicted", title = "validation set")
+```
+
+The predicted values are not realistic in the sense that they are not consistent with the original data. They should fall along the diagonal green line if the model is performing well. 
+
+```{r}
+#| label: cal-obj
+#| echo: false
+
+set.seed(108)
+resampled_res <-
+  bst_spec %>% 
+  fit_resamples(
+    time_to_delivery ~ .,
+    vfold_cv(delivery_train),
+    control = control_resamples(save_pred = TRUE)
+  )
+
+bst_cal <- cal_estimate_linear(resampled_res, smooth = FALSE)
+ls_coefs <- signif(bst_cal$estimates[[1]]$estimate$coefficients, 3)
+bst_val_cal_pred <- 
+  bst_val_pred %>% 
+  cal_apply(bst_cal)
+cal_mtr <- reg_metrics(bst_val_cal_pred, truth = time_to_delivery, estimate = .pred)
+```
+
+The solid blue curve above shows a linear regression line that is fit to these data. This measures the systematic miscalibration. If we were to use the validation set to quantify the pattern, the intercept was `r ls_val_coefs[1]` minutes and the slope was `r ls_val_coefs[2]` minutes. Now that we know this pattern, it might be possible to remove it from the predictions.
+
+The problem, more broadly described below in Case 3, is that we can't use the validation set to measure this pattern and assess its effectiveness. 
+
+As an alternative, we used a slightly risky approach described in Case 3 to estimate a slope of `r ls_coefs[1]` minutes, and the slope was `r ls_coefs[2]` minutes. When these values are used to correct the validation set predictions, RMSE decreases from `r signif(raw_met$.estimate[raw_met$.metric == "rmse"], 3)` to `r signif(cal_mtr$.estimate[raw_met$.metric == "rmse"], 3)` minutes. The R<sup>2</sup> stays the same. 
+
+The plot of the calibrated predictions shows a moderately effective model that has much better calibration: 
+
+```{r}
+#| echo: false
+#| label: cal-pred-plot
+#| warning: false
+#| fig-width: 4
+#| fig-height: 4
+#| out-width: 50%
+#| fig-align: "center"
+bst_val_cal_pred %>% 
+  ggplot(aes(time_to_delivery, .pred)) +
+  geom_abline(lty = 3, col = "green") +
+  geom_point(alpha = 1 / 4) +
+  geom_smooth(method = lm, col = "blue") +
+  coord_obs_pred() +
+  labs(x = "Observed", y = "Predicted", title = "validation set (after calibration)")
+```
 
 
-In the examples that follow, we'll visualize the data spending schemes with an initial pool of 100 samples, assumed to be in a random order:
+#### Our Goals Here
+
+In this article, we want to examine the nuances of data usage in situations where our pipeline is trained in two stages. To do this, we’ll show some diagrams that illustrate some different strategies. The discussion of different data spending schemes with an initial pool of 100 samples, assumed to be in a random order, is visualized using:
 
 ```{r}
 #| label: pool
@@ -111,7 +240,7 @@ One possible approach is to resample the model (prior to the calibration set) us
 1. Estimate our model parameters, and 
 2. Estimate the calibration parameters. 
 
-This raises the risk of overfitting and we don't have a data set  to check how well this works until the test set (which should be used to verify performance). 
+This raises the risk of overfitting and we don't have a data set to check how well this works until the test set (which should be used to verify performance). This is the approach that was used in the regression calibration example above. 
 
 One approach is to use a three-way split at the start instead of a basic training/test set. We could reserve some data strictly for calibration (assuming that we know that calibration is required). 
 
