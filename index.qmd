@@ -312,7 +312,7 @@ If we have a lot of data, we might choose to start with three partitions of our 
 knitr::include_graphics("premade/val-split.svg")
 ```
 
-During model development, we can view the validation set as if it were a single iteration of resampling. Let’s look at that first.
+During model development, we can view the validation set as if it were a single iteration of resampling. Let’s look at that first. We’ll simply the number of use-case here too. 
 
 #### Case 5: No Postprocessing Estimation
 
