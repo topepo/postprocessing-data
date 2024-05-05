@@ -12,7 +12,7 @@ This document is used to discuss and test ideas for how have can estimate and ev
 - A _supervised ML model_ to translate the predictors to predictions of the outcome (e.g., logistic regression, random forest, etc.).
 - _Postprocessors_ that take the model's predictions and change them for the purpose of improving model performance. One example is choosing an alternate probability cutoff in binary classification to optimize for better true positive or true negative rates. 
 
-We'll call the combination of these three components the _model pipeline_ (taking after python's sci-kit learn object type): 
+We'll call the combination of these three components the _model pipeline_^[This document is intended to be independent of implementations. The phrase _model pipeline_ is based on sci-kit learn’s object type. tidymodels calls it a _model workflow_ and only uses different terminology to avoid confusion with the [magrittr pipeline](https://magrittr.tidyverse.org/reference/pipe.html).]: 
 
 ```
    pipeline = preprocessor(s) + supervised model + postprocessor(s)
@@ -227,7 +227,7 @@ Once the optimization phase is finished, the final model uses the optimized tuni
 
 ::: {.callout-note}
 
-Note that tidymodels uses specific terminology to distinguish between the data used for modeling and evaluation at the two different levels of data partitioning. The initial split creates training and test sets. During resampling, the analogs to these data sets are called the _analysis_ and _assessment_ sets. 
+Note that we use specific terminology to distinguish between the data used for modeling and evaluation at the two different levels of data partitioning. The initial split creates training and test sets. During resampling, the analogs to these data sets are called the _analysis_ and _assessment_ sets. 
 
 :::
 
