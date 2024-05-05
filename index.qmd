@@ -347,4 +347,18 @@ During model development,
 That is a lot of splitting but our pipeline is pretty complex. One might think that we are significantly reducing the amount of data used to fit the supervised models. That’s correct, and hopefully, it emphasizes that as the complexity of our pipeline increases, our data usage strategy needs to be more extensive to avoid subtle overfitting errors. 
 
 
+## Conclusion
 
+We’ve described how postprocessing operations can fit into the machine learning pipeline and the complications that occur in terms of data usage. From the viewpoint of the data, there are two main phases of pipeline training: 
+
+- **Stage 1**: Use a single set of data to train the preprocessors (if any) and the supervised model. 
+
+  - The inputs are predictors and outcome data.
+  - Outputs are model predictions.
+		
+- **Stage 2**: Use a separate set of training data to estimate any postprocessors (if any).
+
+  - Inputs are model predictions.
+  - Outputs are modified model predictions.
+
+We recommend using two different partitions for each of these two stages. 
