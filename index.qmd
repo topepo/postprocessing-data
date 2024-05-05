@@ -3,9 +3,6 @@ title: "Data Usage with Postprocessing"
 author: "Max Kuhn"
 ---
 
-
-## Introduction
-
 This document is used to discuss and test ideas for how have can estimate and evaluate machine learning models that have three potential components: 
 
 - _Preprocessors_ are sequential operations that prepare predictor data for use in a supervised model. Examples are centering/scaling, PCA feature extraction, and so on. 
@@ -19,6 +16,10 @@ We'll call the combination of these three components the _model pipeline_^[This 
 ```
 
 The pipeline includes the model in the least; the pre and post model operations are added as needed. 
+
+We want feedback, so if you like our recommendations or have alternatives, [please comment via an issue](https://github.com/topepo/postprocessing-data/issues). 
+
+Let's take some time to describe what postprocessors can do. 
 
 ## More About Postprocessors
 
@@ -362,3 +363,5 @@ We’ve described how postprocessing operations can fit into the machine learnin
   - Outputs are modified model predictions.
 
 We recommend using two different partitions for each of these two stages. 
+
+

@@ -109,8 +109,7 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
-  <li><a href="#more-about-postprocessors" id="toc-more-about-postprocessors" class="nav-link" data-scroll-target="#more-about-postprocessors">More About Postprocessors</a></li>
+  <li><a href="#more-about-postprocessors" id="toc-more-about-postprocessors" class="nav-link active" data-scroll-target="#more-about-postprocessors">More About Postprocessors</a></li>
   <li><a href="#initial-two-way-split" id="toc-initial-two-way-split" class="nav-link" data-scroll-target="#initial-two-way-split">Initial Two-Way Split</a></li>
   <li><a href="#initial-three-way-split" id="toc-initial-three-way-split" class="nav-link" data-scroll-target="#initial-three-way-split">Initial Three-Way Split</a></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
@@ -145,8 +144,6 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="introduction" class="level2">
-<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
 <p>This document is used to discuss and test ideas for how have can estimate and evaluate machine learning models that have three potential components:</p>
 <ul>
 <li><em>Preprocessors</em> are sequential operations that prepare predictor data for use in a supervised model. Examples are centering/scaling, PCA feature extraction, and so on.</li>
@@ -156,7 +153,8 @@ ul.task-list li input[type="checkbox"] {
 <p>We’ll call the combination of these three components the <em>model pipeline</em><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>:</p>
 <pre><code>   pipeline = preprocessor(s) + supervised model + postprocessor(s)</code></pre>
 <p>The pipeline includes the model in the least; the pre and post model operations are added as needed.</p>
-</section>
+<p>We want feedback, so if you like our recommendations or have alternatives, <a href="https://github.com/topepo/postprocessing-data/issues">please comment via an issue</a>.</p>
+<p>Let’s take some time to describe what postprocessors can do.</p>
 <section id="more-about-postprocessors" class="level2">
 <h2 class="anchored" data-anchor-id="more-about-postprocessors">More About Postprocessors</h2>
 <p>The process of postprocessing the predicted values has not been thoroughly discussed, mostly because the software to operationalize the full pipeline process is not comprehensive.</p>

@@ -4,14 +4,7 @@
     "href": "index.html",
     "title": "Data Usage with Postprocessing",
     "section": "",
-    "text": "This document is used to discuss and test ideas for how have can estimate and evaluate machine learning models that have three potential components:\n\nPreprocessors are sequential operations that prepare predictor data for use in a supervised model. Examples are centering/scaling, PCA feature extraction, and so on.\nA supervised ML model to translate the predictors to predictions of the outcome (e.g., logistic regression, random forest, etc.).\nPostprocessors that take the model’s predictions and change them for the purpose of improving model performance. One example is choosing an alternate probability cutoff in binary classification to optimize for better true positive or true negative rates.\n\nWe’ll call the combination of these three components the model pipeline1:\n   pipeline = preprocessor(s) + supervised model + postprocessor(s)\nThe pipeline includes the model in the least; the pre and post model operations are added as needed."
-  },
-  {
-    "objectID": "index.html#introduction",
-    "href": "index.html#introduction",
-    "title": "Data Usage with Postprocessing",
-    "section": "",
-    "text": "This document is used to discuss and test ideas for how have can estimate and evaluate machine learning models that have three potential components:\n\nPreprocessors are sequential operations that prepare predictor data for use in a supervised model. Examples are centering/scaling, PCA feature extraction, and so on.\nA supervised ML model to translate the predictors to predictions of the outcome (e.g., logistic regression, random forest, etc.).\nPostprocessors that take the model’s predictions and change them for the purpose of improving model performance. One example is choosing an alternate probability cutoff in binary classification to optimize for better true positive or true negative rates.\n\nWe’ll call the combination of these three components the model pipeline1:\n   pipeline = preprocessor(s) + supervised model + postprocessor(s)\nThe pipeline includes the model in the least; the pre and post model operations are added as needed."
+    "text": "This document is used to discuss and test ideas for how have can estimate and evaluate machine learning models that have three potential components:\nWe’ll call the combination of these three components the model pipeline1:\nThe pipeline includes the model in the least; the pre and post model operations are added as needed.\nWe want feedback, so if you like our recommendations or have alternatives, please comment via an issue.\nLet’s take some time to describe what postprocessors can do."
   },
   {
     "objectID": "index.html#more-about-postprocessors",
